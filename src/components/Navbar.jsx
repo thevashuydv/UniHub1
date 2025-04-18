@@ -6,6 +6,7 @@ import './Navbar.css';
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
@@ -14,9 +15,37 @@ const Navbar = () => {
     // Check localStorage for login status
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const storedName = localStorage.getItem('userName');
+    const storedRole = localStorage.getItem('userRole');
 
     setIsLoggedIn(loggedIn);
     if (storedName) setUserName(storedName);
+    if (storedRole) setUserRole(storedRole);
+
+    // Add event listener for storage changes (for when other components update localStorage)
+    const handleStorageChange = () => {
+      const updatedLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const updatedName = localStorage.getItem('userName');
+      const updatedRole = localStorage.getItem('userRole');
+
+      setIsLoggedIn(updatedLoggedIn);
+      if (updatedName) setUserName(updatedName);
+      if (updatedRole) setUserRole(updatedRole);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also add a custom event listener for login/logout events
+    const handleAuthEvent = () => {
+      const updatedLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const updatedName = localStorage.getItem('userName');
+      const updatedRole = localStorage.getItem('userRole');
+
+      setIsLoggedIn(updatedLoggedIn);
+      if (updatedName) setUserName(updatedName);
+      if (updatedRole) setUserRole(updatedRole);
+    };
+
+    window.addEventListener('authStateChanged', handleAuthEvent);
 
     // Add scroll event listener
     const handleScroll = () => {
@@ -29,9 +58,11 @@ const Navbar = () => {
 
     window.addEventListener('scroll', handleScroll);
 
-    // Clean up event listener
+    // Clean up event listeners
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authStateChanged', handleAuthEvent);
     };
   }, []);
 
@@ -45,6 +76,9 @@ const Navbar = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userName');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('clubId');
+    localStorage.removeItem('clubName');
 
     // Update state
     setIsLoggedIn(false);
@@ -52,6 +86,12 @@ const Navbar = () => {
 
     // Close mobile menu if open
     setMenuOpen(false);
+
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
+
+    // Redirect to home page
+    window.location.href = '/';
   };
 
   const toggleMenu = () => {
@@ -126,6 +166,19 @@ const Navbar = () => {
               About
             </Link>
           </motion.li>
+
+          {isLoggedIn && userRole === 'club_admin' && (
+            <motion.li
+              className="nav-item"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+            >
+              <Link to="/dashboard" className={`nav-link dashboard-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
+                Dashboard
+              </Link>
+            </motion.li>
+          )}
 
           {isLoggedIn ? (
             <>

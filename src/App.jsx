@@ -14,6 +14,7 @@ import ClubSignUp from './components/ClubSignUp'
 import Clubs from './components/Clubs'
 import Events from './components/Events'
 import About from './components/About'
+import ClubAdminDashboard from './components/ClubAdminDashboard'
 
 // Pages
 import AuthPage from './pages/AuthPage'
@@ -41,6 +42,7 @@ function App() {
         <Route path="/clubs/:clubId" element={<ClubDetailPage />} />
         <Route path="/events" element={<Events />} />
         <Route path="/about" element={<About />} />
+        <Route path="/dashboard" element={<ClubAdminDashboard />} />
       </Routes>
     </Router>
   )

@@ -43,6 +43,9 @@ const SignIn = () => {
       setEmail('');
       setPassword('');
 
+      // Dispatch custom event to notify other components (like Navbar)
+      window.dispatchEvent(new Event('authStateChanged'));
+
       // Redirect to home page after a short delay
       setTimeout(() => {
         navigate('/');

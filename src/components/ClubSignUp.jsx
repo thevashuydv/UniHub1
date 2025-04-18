@@ -187,6 +187,9 @@ const ClubSignUp = () => {
       localStorage.setItem('clubName', clubName);
       localStorage.setItem('clubId', clubRef.id);
 
+      // Dispatch custom event to notify other components (like Navbar)
+      window.dispatchEvent(new Event('authStateChanged'));
+
       // Redirect to home page after a short delay
       setTimeout(() => {
         navigate('/');
