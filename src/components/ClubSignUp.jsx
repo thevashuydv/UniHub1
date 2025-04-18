@@ -1,9 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { motion } from 'framer-motion';
 import { db } from '../firebase';
+
+// Helper function to convert file to base64
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 const ClubSignUp = () => {
   // Personal Info
@@ -32,13 +41,34 @@ const ClubSignUp = () => {
   // Handle file inputs
   const handleLogoChange = (e) => {
     if (e.target.files[0]) {
-      setClubLogo(e.target.files[0]);
+      const file = e.target.files[0];
+      setClubLogo(file);
+      console.log('Logo file selected:', file.name, 'Size:', file.size, 'Type:', file.type);
     }
   };
 
   const handleBannerChange = (e) => {
     if (e.target.files[0]) {
-      setClubBanner(e.target.files[0]);
+      const file = e.target.files[0];
+      setClubBanner(file);
+      console.log('Banner file selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+    }
+  };
+
+  // Function to upload file and get URL without using Firebase Storage directly
+  const uploadFileAsBase64 = async (file) => {
+    try {
+      // Convert file to base64 string
+      const base64String = await fileToBase64(file);
+
+      // For this workaround, we'll store the base64 string directly in Firestore
+      // This is not ideal for large files but works as a temporary solution
+      console.log('File converted to base64 successfully');
+
+      return base64String;
+    } catch (error) {
+      console.error('Error converting file to base64:', error);
+      throw error;
     }
   };
 
@@ -60,18 +90,29 @@ const ClubSignUp = () => {
       let logoUrl = '';
       let bannerUrl = '';
 
+      // Instead of using Firebase Storage directly, we'll use base64 encoding as a workaround
       if (clubLogo) {
-        const storage = getStorage();
-        const logoRef = ref(storage, `club_logos/${clubName}_${Date.now()}`);
-        await uploadBytes(logoRef, clubLogo);
-        logoUrl = await getDownloadURL(logoRef);
+        try {
+          console.log('Processing logo file...');
+          // Use the base64 approach instead
+          logoUrl = await uploadFileAsBase64(clubLogo);
+          console.log('Logo processed successfully');
+        } catch (uploadError) {
+          console.error('Error processing logo:', uploadError);
+          throw uploadError;
+        }
       }
 
       if (clubBanner) {
-        const storage = getStorage();
-        const bannerRef = ref(storage, `club_banners/${clubName}_${Date.now()}`);
-        await uploadBytes(bannerRef, clubBanner);
-        bannerUrl = await getDownloadURL(bannerRef);
+        try {
+          console.log('Processing banner file...');
+          // Use the base64 approach instead
+          bannerUrl = await uploadFileAsBase64(clubBanner);
+          console.log('Banner processed successfully');
+        } catch (uploadError) {
+          console.error('Error processing banner:', uploadError);
+          throw uploadError;
+        }
       }
 
       // First, add the club to the clubs collection
@@ -157,11 +198,14 @@ const ClubSignUp = () => {
       console.error('Error message:', error.message);
 
       if (error.code === 'permission-denied') {
-        setError('Permission denied. Check your Firestore rules.');
+        setError('Permission denied. Check your Firestore and Storage rules.');
       } else if (error.code === 'unavailable') {
         setError('Firebase service is unavailable. Check your internet connection.');
       } else if (error.code === 'not-found') {
         setError('Firestore database not found. Make sure you have created a Firestore database.');
+      } else if (error.message && error.message.includes('CORS')) {
+        setError('CORS error: Unable to upload files. Please check Firebase Storage CORS configuration.');
+        console.error('CORS Error Details:', error);
       } else {
         setError(`Error: ${error.message} (Code: ${error.code || 'unknown'})`);
       }
@@ -391,3 +435,4 @@ const ClubSignUp = () => {
 };
 
 export default ClubSignUp;
+

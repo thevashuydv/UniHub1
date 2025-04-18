@@ -25,5 +25,6 @@ export const db = getFirestore(app);
 
 // Initialize Storage
 export const storage = getStorage(app);
+console.log('Firebase Storage initialized');
 
 export default app;
