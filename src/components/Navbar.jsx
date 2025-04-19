@@ -160,6 +160,16 @@ const Navbar = () => {
             className="nav-item"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <Link to="/announcements" className={`nav-link ${location.pathname === '/announcements' ? 'active' : ''}`}>
+              Announcements
+            </Link>
+          </motion.li>
+          <motion.li
+            className="nav-item"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
             <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>

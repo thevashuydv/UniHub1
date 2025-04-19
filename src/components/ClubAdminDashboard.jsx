@@ -26,6 +26,17 @@ const ClubAdminDashboard = () => {
   // New member form state
   const [newMember, setNewMember] = useState({ name: '', position: '' });
 
+  // Announcement form state
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementContent, setAnnouncementContent] = useState('');
+  const [announcementError, setAnnouncementError] = useState('');
+  const [announcementSuccess, setAnnouncementSuccess] = useState('');
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false);
+
   // Event form state
   const [eventName, setEventName] = useState('');
   const [eventDescription, setEventDescription] = useState('');
@@ -66,6 +77,9 @@ const ClubAdminDashboard = () => {
 
       // Fetch events for this club
       fetchEvents(clubId);
+
+      // Fetch announcements for this club
+      fetchAnnouncements(clubId);
     }
   }, [navigate]);
 
@@ -431,6 +445,210 @@ const ClubAdminDashboard = () => {
     setShowClubInfoForm(!showClubInfoForm);
     setClubInfoError('');
     setClubInfoSuccess('');
+
+    // Close other forms if open
+    if (showEventForm) setShowEventForm(false);
+    if (showAnnouncementForm) setShowAnnouncementForm(false);
+  };
+
+  // Fetch announcements for this club
+  const fetchAnnouncements = async (clubId) => {
+    try {
+      setAnnouncementsLoading(true);
+      console.log('Fetching announcements for club ID:', clubId);
+
+      // First try with the compound query (requires an index)
+      try {
+        const announcementsCollection = collection(db, 'announcements');
+        const announcementsQuery = query(
+          announcementsCollection,
+          where('clubId', '==', clubId),
+          orderBy('createdAt', 'desc')
+        );
+
+        const announcementsSnapshot = await getDocs(announcementsQuery);
+        const announcementsList = announcementsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        console.log('Announcements fetched successfully:', announcementsList.length);
+        setAnnouncements(announcementsList);
+        setAnnouncementsLoading(false);
+      } catch (indexError) {
+        // If the compound query fails (likely due to missing index), fall back to a simpler query
+        console.warn('Compound query failed, falling back to simple query:', indexError);
+
+        const announcementsCollection = collection(db, 'announcements');
+        const simpleQuery = query(
+          announcementsCollection,
+          where('clubId', '==', clubId)
+        );
+
+        const announcementsSnapshot = await getDocs(simpleQuery);
+        let announcementsList = announcementsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        // Sort manually in JavaScript
+        announcementsList.sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0);
+          const dateB = new Date(b.createdAt || 0);
+          return dateB - dateA; // descending order (newest first)
+        });
+
+        console.log('Announcements fetched with fallback:', announcementsList.length);
+        setAnnouncements(announcementsList);
+        setAnnouncementsLoading(false);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      setAnnouncementsLoading(false);
+    }
+  };
+
+  // Toggle announcement form
+  const toggleAnnouncementForm = () => {
+    setShowAnnouncementForm(!showAnnouncementForm);
+    setAnnouncementError('');
+    setAnnouncementSuccess('');
+    setSelectedAnnouncement(null);
+    setIsEditingAnnouncement(false);
+    setAnnouncementTitle('');
+    setAnnouncementContent('');
+
+    // Close other forms if open
+    if (showEventForm) setShowEventForm(false);
+    if (showClubInfoForm) setShowClubInfoForm(false);
+  };
+
+  // Handle announcement form submission
+  const handleAnnouncementSubmit = async (e) => {
+    e.preventDefault();
+    setAnnouncementError('');
+    setAnnouncementSuccess('');
+
+    // Validate form
+    if (!announcementTitle.trim()) {
+      setAnnouncementError('Please enter an announcement title');
+      return;
+    }
+
+    if (!announcementContent.trim()) {
+      setAnnouncementError('Please enter announcement content');
+      return;
+    }
+
+    try {
+      setAnnouncementsLoading(true);
+
+      // Ensure we have the club details
+      if (!clubDetails || !clubDetails.id) {
+        setAnnouncementError('Club information is missing. Please refresh the page and try again.');
+        setAnnouncementsLoading(false);
+        return;
+      }
+
+      console.log('Club details for announcement:', clubDetails);
+
+      if (isEditingAnnouncement && selectedAnnouncement) {
+        // Update existing announcement
+        const announcementRef = doc(db, 'announcements', selectedAnnouncement.id);
+        await updateDoc(announcementRef, {
+          title: announcementTitle.trim(),
+          content: announcementContent.trim(),
+          updatedAt: new Date().toISOString()
+        });
+
+        setAnnouncementSuccess('Announcement updated successfully!');
+      } else {
+        // Create new announcement
+        const announcementData = {
+          clubId: clubDetails.id,
+          clubName: clubDetails.name,
+          title: announcementTitle.trim(),
+          content: announcementContent.trim(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        console.log('Creating new announcement with data:', announcementData);
+        const docRef = await addDoc(collection(db, 'announcements'), announcementData);
+        console.log('Announcement created with ID:', docRef.id);
+
+        // Add the new announcement to the local state immediately
+        const newAnnouncement = {
+          id: docRef.id,
+          ...announcementData
+        };
+
+        setAnnouncements(prevAnnouncements => [newAnnouncement, ...prevAnnouncements]);
+        setAnnouncementSuccess('Announcement posted successfully!');
+      }
+
+      // Reset form
+      setTimeout(() => {
+        setAnnouncementTitle('');
+        setAnnouncementContent('');
+        setShowAnnouncementForm(false);
+        setAnnouncementSuccess('');
+        setIsEditingAnnouncement(false);
+        setSelectedAnnouncement(null);
+      }, 2000);
+
+      // Refresh announcements list to ensure we have the latest data
+      fetchAnnouncements(clubDetails.id);
+      setAnnouncementsLoading(false);
+    } catch (error) {
+      console.error('Error posting announcement:', error);
+      setAnnouncementError('Failed to post announcement. Please try again.');
+      setAnnouncementsLoading(false);
+    }
+  };
+
+  // Edit announcement
+  const handleEditAnnouncement = (announcement) => {
+    setSelectedAnnouncement(announcement);
+    setAnnouncementTitle(announcement.title);
+    setAnnouncementContent(announcement.content);
+    setIsEditingAnnouncement(true);
+    setShowAnnouncementForm(true);
+
+    // Close other forms if open
+    if (showEventForm) setShowEventForm(false);
+    if (showClubInfoForm) setShowClubInfoForm(false);
+  };
+
+  // Delete announcement
+  const handleDeleteAnnouncement = async (announcementId) => {
+    if (!window.confirm('Are you sure you want to delete this announcement?')) {
+      return;
+    }
+
+    try {
+      setAnnouncementsLoading(true);
+      console.log('Deleting announcement with ID:', announcementId);
+
+      // Delete announcement from Firestore
+      const announcementRef = doc(db, 'announcements', announcementId);
+      await deleteDoc(announcementRef);
+      console.log('Announcement deleted from Firestore');
+
+      // Update local state
+      setAnnouncements(announcements.filter(a => a.id !== announcementId));
+      setAnnouncementSuccess('Announcement deleted successfully!');
+
+      setTimeout(() => {
+        setAnnouncementSuccess('');
+      }, 2000);
+
+      setAnnouncementsLoading(false);
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      setAnnouncementError('Failed to delete announcement. Please try again.');
+      setAnnouncementsLoading(false);
+    }
   };
 
   // Animation variants
@@ -473,11 +691,24 @@ const ClubAdminDashboard = () => {
 
           <motion.button
             className="create-event-button"
-            onClick={() => setShowEventForm(!showEventForm)}
+            onClick={() => {
+              setShowEventForm(!showEventForm);
+              if (showAnnouncementForm) setShowAnnouncementForm(false);
+              if (showClubInfoForm) setShowClubInfoForm(false);
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             {showEventForm ? 'Cancel' : 'Create New Event'}
+          </motion.button>
+
+          <motion.button
+            className="announcement-button"
+            onClick={toggleAnnouncementForm}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {showAnnouncementForm ? 'Cancel' : 'Post Announcement'}
           </motion.button>
         </div>
       </div>
@@ -733,8 +964,71 @@ const ClubAdminDashboard = () => {
         </motion.div>
       )}
 
+      {/* Announcement Form */}
+      {showAnnouncementForm && (
+        <motion.div
+          className="announcement-form-container"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+        >
+          <h2>{isEditingAnnouncement ? 'Edit Announcement' : 'Post New Announcement'}</h2>
+
+          {announcementError && <div className="form-error">{announcementError}</div>}
+          {announcementSuccess && <div className="form-success">{announcementSuccess}</div>}
+
+          <form onSubmit={handleAnnouncementSubmit} className="announcement-form">
+            <div className="form-group">
+              <label htmlFor="announcementTitle">Announcement Title</label>
+              <input
+                type="text"
+                id="announcementTitle"
+                value={announcementTitle}
+                onChange={(e) => setAnnouncementTitle(e.target.value)}
+                placeholder="Enter announcement title"
+                required
+              />
+            </div>
+
+            <div className="form-group full-width">
+              <label htmlFor="announcementContent">Announcement Content</label>
+              <textarea
+                id="announcementContent"
+                value={announcementContent}
+                onChange={(e) => setAnnouncementContent(e.target.value)}
+                placeholder="Enter announcement content"
+                rows="6"
+                required
+              />
+            </div>
+
+            <div className="form-actions">
+              <motion.button
+                type="submit"
+                className="submit-button"
+                disabled={announcementsLoading}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {announcementsLoading ? 'Saving...' : isEditingAnnouncement ? 'Update Announcement' : 'Post Announcement'}
+              </motion.button>
+
+              <motion.button
+                type="button"
+                className="cancel-button"
+                onClick={toggleAnnouncementForm}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Cancel
+              </motion.button>
+            </div>
+          </form>
+        </motion.div>
+      )}
+
       {/* Club Info Display Section */}
-      {!showClubInfoForm && !showEventForm && (
+      {!showClubInfoForm && !showEventForm && !showAnnouncementForm && (
         <motion.div
           className="club-info-section"
           initial={{ opacity: 0 }}
@@ -791,6 +1085,95 @@ const ClubAdminDashboard = () => {
               )}
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* Announcements Section */}
+      {!showClubInfoForm && !showEventForm && !showAnnouncementForm && (
+        <motion.div
+          className="announcements-section"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="section-header">
+            <h2>Your Announcements</h2>
+            <motion.button
+              className="add-button"
+              onClick={toggleAnnouncementForm}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Post New Announcement
+            </motion.button>
+          </div>
+
+          {announcementError && <div className="form-error">{announcementError}</div>}
+          {announcementSuccess && <div className="form-success">{announcementSuccess}</div>}
+
+          {announcementsLoading ? (
+            <div className="loading-spinner-container">
+              <div className="loading-spinner"></div>
+              <p>Loading announcements...</p>
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="no-items-message">
+              <p>You haven't posted any announcements yet.</p>
+              <p>Click the "Post New Announcement" button to get started!</p>
+            </div>
+          ) : (
+            <motion.div
+              className="announcements-list"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {announcements.map(announcement => (
+                <motion.div
+                  key={announcement.id}
+                  className="announcement-card admin-view"
+                  variants={itemVariants}
+                >
+                  <div className="announcement-card-header">
+                    <h3>{announcement.title}</h3>
+                    <div className="announcement-date">
+                      {new Date(announcement.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="announcement-card-body">
+                    <p className="announcement-content">{announcement.content}</p>
+                  </div>
+
+                  <div className="announcement-card-actions">
+                    <motion.button
+                      className="edit-button"
+                      onClick={() => handleEditAnnouncement(announcement)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Edit
+                    </motion.button>
+
+                    <motion.button
+                      className="delete-button"
+                      onClick={() => handleDeleteAnnouncement(announcement.id)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Delete
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </motion.div>
       )}
 

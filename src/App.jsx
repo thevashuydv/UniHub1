@@ -20,6 +20,7 @@ import ClubAdminDashboard from './components/ClubAdminDashboard'
 import AuthPage from './pages/AuthPage'
 import ClubDetailPage from './pages/ClubDetailPage'
 import UserProfilePage from './pages/UserProfilePage'
+import AnnouncementsPage from './pages/AnnouncementsPage'
 
 function App() {
   useEffect(() => {
@@ -42,6 +43,7 @@ function App() {
         <Route path="/clubs" element={<Clubs />} />
         <Route path="/clubs/:clubId" element={<ClubDetailPage />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/about" element={<About />} />
         <Route path="/dashboard" element={<ClubAdminDashboard />} />
         <Route path="/profile" element={<UserProfilePage />} />
