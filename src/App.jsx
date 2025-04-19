@@ -19,6 +19,7 @@ import ClubAdminDashboard from './components/ClubAdminDashboard'
 // Pages
 import AuthPage from './pages/AuthPage'
 import ClubDetailPage from './pages/ClubDetailPage'
+import UserProfilePage from './pages/UserProfilePage'
 
 function App() {
   useEffect(() => {
@@ -43,6 +44,7 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/about" element={<About />} />
         <Route path="/dashboard" element={<ClubAdminDashboard />} />
+        <Route path="/profile" element={<UserProfilePage />} />
       </Routes>
     </Router>
   )

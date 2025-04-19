@@ -194,6 +194,18 @@ const Navbar = () => {
                 className="nav-item"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.55 }}
+              >
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/profile" className="nav-button profile">
+                    My Profile
+                  </Link>
+                </motion.div>
+              </motion.li>
+              <motion.li
+                className="nav-item"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6 }}
               >
                 <motion.button

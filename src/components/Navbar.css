@@ -171,6 +171,16 @@
   box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
 }
 
+.profile {
+  background: linear-gradient(90deg, #4a5af8, #28c7fa);
+  color: white;
+  box-shadow: 0 4px 10px rgba(74, 90, 248, 0.3);
+}
+
+.profile:hover {
+  box-shadow: 0 6px 15px rgba(74, 90, 248, 0.4);
+}
+
 .user-greeting {
   color: var(--text-primary);
   margin-right: 10px;
