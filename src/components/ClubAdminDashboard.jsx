@@ -11,6 +11,9 @@ const ClubAdminDashboard = () => {
   const [error, setError] = useState('');
   const [showEventForm, setShowEventForm] = useState(false);
   const [clubDetails, setClubDetails] = useState(null);
+  const [eventRegistrations, setEventRegistrations] = useState({});
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showRegistrations, setShowRegistrations] = useState(false);
 
   // Event form state
   const [eventName, setEventName] = useState('');
@@ -28,13 +31,19 @@ const ClubAdminDashboard = () => {
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const userRole = localStorage.getItem('userRole');
+    const userEmail = localStorage.getItem('userEmail');
+
+    console.log('ClubAdminDashboard - Auth check:', { isLoggedIn, userRole, userEmail });
 
     if (!isLoggedIn || userRole !== 'club_admin') {
+      console.log('Not authenticated as club admin, redirecting to signin');
       navigate('/signin');
     } else {
       // Get club details
       const clubId = localStorage.getItem('clubId');
       const clubName = localStorage.getItem('clubName');
+
+      console.log('Club admin authenticated, club details:', { clubId, clubName });
 
       setClubDetails({
         id: clubId,
@@ -73,6 +82,11 @@ const ClubAdminDashboard = () => {
 
       setEvents(eventsList);
       setLoading(false);
+
+      // Fetch registrations for each event
+      eventsList.forEach(event => {
+        fetchEventRegistrations(event.id);
+      });
     } catch (error) {
       console.error('Error fetching events:', error);
       setError('Failed to load events. Please try again later.');
@@ -136,6 +150,42 @@ const ClubAdminDashboard = () => {
       console.error('Error creating event:', error);
       setFormError('Failed to create event. Please try again.');
     }
+  };
+
+  // Fetch registrations for an event
+  const fetchEventRegistrations = async (eventId) => {
+    try {
+      const registrationsRef = collection(db, 'event_registrations');
+      const q = query(registrationsRef, where('eventId', '==', eventId));
+      const querySnapshot = await getDocs(q);
+
+      const registrations = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      setEventRegistrations(prev => ({
+        ...prev,
+        [eventId]: registrations
+      }));
+    } catch (error) {
+      console.error('Error fetching event registrations:', error);
+    }
+  };
+
+  // View registrations for an event
+  const viewRegistrations = (event) => {
+    setSelectedEvent(event);
+    setShowRegistrations(true);
+
+    // Refresh registrations when viewing
+    fetchEventRegistrations(event.id);
+  };
+
+  // Close registrations modal
+  const closeRegistrations = () => {
+    setShowRegistrations(false);
+    setSelectedEvent(null);
   };
 
   // Delete event
@@ -377,6 +427,20 @@ const ClubAdminDashboard = () => {
 
                     <div className="event-card-actions">
                       <motion.button
+                        className="view-registrations-button"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => viewRegistrations(event)}
+                      >
+                        View Registrations
+                        {eventRegistrations[event.id] && (
+                          <span className="registration-count">
+                            {eventRegistrations[event.id].length}
+                          </span>
+                        )}
+                      </motion.button>
+
+                      <motion.button
                         className="edit-button"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -436,6 +500,20 @@ const ClubAdminDashboard = () => {
 
                     <div className="event-card-actions">
                       <motion.button
+                        className="view-registrations-button"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => viewRegistrations(event)}
+                      >
+                        View Registrations
+                        {eventRegistrations[event.id] && (
+                          <span className="registration-count">
+                            {eventRegistrations[event.id].length}
+                          </span>
+                        )}
+                      </motion.button>
+
+                      <motion.button
                         className="delete-button"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -450,6 +528,55 @@ const ClubAdminDashboard = () => {
           </>
         )}
       </div>
+
+      {/* Registrations Modal */}
+      {showRegistrations && selectedEvent && (
+        <div className="modal-overlay">
+          <motion.div
+            className="registrations-modal"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+          >
+            <div className="modal-header">
+              <h2>Registrations for {selectedEvent.name}</h2>
+              <button className="close-modal" onClick={closeRegistrations}>&times;</button>
+            </div>
+
+            <div className="modal-content">
+              {eventRegistrations[selectedEvent.id]?.length > 0 ? (
+                <div className="registrations-list">
+                  <div className="registrations-header">
+                    <div className="reg-col">Name</div>
+                    <div className="reg-col">Email</div>
+                    <div className="reg-col">Registration Date</div>
+                  </div>
+
+                  {eventRegistrations[selectedEvent.id].map(registration => (
+                    <div key={registration.id} className="registration-item">
+                      <div className="reg-col" data-label="Name:">{registration.userName}</div>
+                      <div className="reg-col" data-label="Email:">{registration.userEmail}</div>
+                      <div className="reg-col" data-label="Registered:">
+                        {new Date(registration.registeredAt).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-registrations">
+                  <p>No registrations for this event yet.</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

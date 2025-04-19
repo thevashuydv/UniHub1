@@ -229,6 +229,102 @@
   font-size: 1.1rem;
 }
 
+/* Event registration styles */
+.event-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.register-button,
+.unregister-button {
+  padding: 8px 20px;
+  border-radius: 50px;
+  color: white;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.register-button {
+  background-color: var(--primary-color);
+}
+
+.unregister-button {
+  background-color: var(--danger-color);
+}
+
+.register-button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.unregister-button:hover {
+  background-color: #e53935; /* Darker red */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.register-button:disabled,
+.unregister-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.registration-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.registration-status.registered {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.status-icon {
+  font-size: 1rem;
+}
+
+.registration-confirmation {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.registration-confirmation.success {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+}
+
+.registration-confirmation.unregistered {
+  background-color: rgba(229, 57, 53, 0.1);
+  color: var(--danger-color);
+}
+
+.confirmation-icon {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
 /* Loading and empty states */
 .events-loading,
 .events-not-logged-in,
@@ -296,22 +392,38 @@
   .events-title {
     font-size: 2.2rem;
   }
-  
+
   .event-card-header {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .event-time {
     align-self: flex-start;
   }
-  
+
   .filter-buttons {
     flex-wrap: wrap;
   }
-  
+
   .filter-button {
     flex: 1;
     min-width: 100px;
+  }
+
+  .event-card-actions {
+    justify-content: center;
+  }
+
+  .register-button,
+  .registration-status {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .registration-confirmation {
+    text-align: center;
+    flex-direction: column;
+    padding: 15px;
   }
 }

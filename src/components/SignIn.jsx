@@ -17,26 +17,58 @@ const SignIn = () => {
     setSuccess('');
 
     try {
-      // Query Firestore to find user with matching email and password
       console.log('Attempting to sign in with email:', email);
+
+      // First, try to find the user in the regular users collection
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email), where('password', '==', password));
-      const querySnapshot = await getDocs(q);
+      const userQuery = query(usersRef, where('email', '==', email), where('password', '==', password));
+      const userSnapshot = await getDocs(userQuery);
 
-      console.log('Query results:', querySnapshot.size, 'documents found');
+      // If not found in users, check the club_admins collection
+      const clubAdminsRef = collection(db, 'club_admins');
+      const adminQuery = query(clubAdminsRef, where('email', '==', email), where('password', '==', password));
+      const adminSnapshot = await getDocs(adminQuery);
 
-      if (querySnapshot.empty) {
+      console.log('Query results - Users:', userSnapshot.size, 'Club Admins:', adminSnapshot.size);
+
+      // If not found in either collection, show error
+      if (userSnapshot.empty && adminSnapshot.empty) {
         setError('Invalid email or password');
         return;
       }
 
-      // Get user data
-      const userData = querySnapshot.docs[0].data();
+      // Determine which collection the user was found in and get their data
+      let userData;
+      let isClubAdmin = false;
+
+      if (!userSnapshot.empty) {
+        // Regular user found
+        userData = userSnapshot.docs[0].data();
+        userData.id = userSnapshot.docs[0].id;
+      } else {
+        // Club admin found
+        userData = adminSnapshot.docs[0].data();
+        userData.id = adminSnapshot.docs[0].id;
+        isClubAdmin = true;
+      }
 
       // Store user info in localStorage for session management
       localStorage.setItem('userEmail', userData.email);
-      localStorage.setItem('userName', userData.name);
+      localStorage.setItem('userName', isClubAdmin ? userData.fullName : userData.name);
       localStorage.setItem('isLoggedIn', 'true');
+
+      // If user is a club admin, store additional info
+      if (isClubAdmin) {
+        console.log('Club admin login detected:', userData);
+        localStorage.setItem('userRole', 'club_admin');
+        localStorage.setItem('clubId', userData.clubId);
+        localStorage.setItem('clubName', userData.clubName);
+        console.log('Stored club admin data in localStorage:', {
+          userRole: 'club_admin',
+          clubId: userData.clubId,
+          clubName: userData.clubName
+        });
+      }
 
       // Signed in successfully
       setSuccess('Signed in successfully!');
@@ -51,6 +83,7 @@ const SignIn = () => {
         navigate('/');
       }, 1500);
     } catch (error) {
+      console.error('Sign in error:', error);
       setError(error.message);
     }
   };

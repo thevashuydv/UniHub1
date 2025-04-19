@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { motion } from 'framer-motion';
+import { collection, query, where, getDocs, orderBy, addDoc, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../firebase';
 import './Events.css';
 
@@ -11,9 +11,70 @@ const Events = () => {
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [registeredEvents, setRegisteredEvents] = useState([]);
+  const [registrationLoading, setRegistrationLoading] = useState({});
+  const [registrationSuccess, setRegistrationSuccess] = useState(null);
+  const [unregistrationSuccess, setUnregistrationSuccess] = useState(null);
+  const [registrationIds, setRegistrationIds] = useState({});
+  const [userProfile, setUserProfile] = useState(null);
 
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const userEmail = localStorage.getItem('userEmail');
+  const userName = localStorage.getItem('userName');
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!isLoggedIn || !userEmail) return;
+
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', userEmail));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const userData = querySnapshot.docs[0].data();
+          setUserProfile({
+            id: querySnapshot.docs[0].id,
+            ...userData
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [isLoggedIn, userEmail]);
+
+  // Fetch user's event registrations
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      if (!isLoggedIn || !userEmail) return;
+
+      try {
+        const registrationsRef = collection(db, 'event_registrations');
+        const q = query(registrationsRef, where('userEmail', '==', userEmail));
+        const querySnapshot = await getDocs(q);
+
+        const registeredEventIds = [];
+        const registrationIdsMap = {};
+
+        querySnapshot.docs.forEach(doc => {
+          const eventId = doc.data().eventId;
+          registeredEventIds.push(eventId);
+          registrationIdsMap[eventId] = doc.id;
+        });
+
+        setRegisteredEvents(registeredEventIds);
+        setRegistrationIds(registrationIdsMap);
+      } catch (error) {
+        console.error('Error fetching event registrations:', error);
+      }
+    };
+
+    fetchRegistrations();
+  }, [isLoggedIn, userEmail]);
 
   // Fetch user's followed clubs
   useEffect(() => {
@@ -96,6 +157,154 @@ const Events = () => {
       console.error('Error fetching events:', error);
       setError('Failed to load events. Please try again later.');
       setLoading(false);
+    }
+  };
+
+  // Check if user is registered for an event
+  const isRegistered = (eventId) => {
+    return registeredEvents.includes(eventId);
+  };
+
+  // Handle event registration
+  const handleRegister = async (event) => {
+    if (!isLoggedIn) {
+      alert('Please sign in to register for events');
+      return;
+    }
+
+    if (isRegistered(event.id)) {
+      alert('You are already registered for this event');
+      return;
+    }
+
+    try {
+      // Set loading state for this specific event
+      setRegistrationLoading(prev => ({
+        ...prev,
+        [event.id]: true
+      }));
+
+      // Create registration document
+      const registrationData = {
+        eventId: event.id,
+        eventName: event.name,
+        clubId: event.clubId,
+        clubName: event.clubName,
+        userEmail: userEmail,
+        userName: userName,
+        userProfile: userProfile || { name: userName, email: userEmail },
+        registeredAt: new Date().toISOString()
+      };
+
+      // Add registration to Firestore
+      const docRef = await addDoc(collection(db, 'event_registrations'), registrationData);
+
+      // Update local state
+      setRegisteredEvents([...registeredEvents, event.id]);
+      setRegistrationIds(prev => ({
+        ...prev,
+        [event.id]: docRef.id
+      }));
+
+      // Show success message
+      setRegistrationSuccess({
+        eventId: event.id,
+        eventName: event.name
+      });
+
+      // Clear any unregistration message
+      setUnregistrationSuccess(null);
+
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setRegistrationSuccess(null);
+      }, 5000);
+
+      // Clear loading state for this event
+      setRegistrationLoading(prev => {
+        const updated = { ...prev };
+        delete updated[event.id];
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error registering for event:', error);
+      alert('Failed to register for event. Please try again.');
+      // Clear loading state for this event
+      setRegistrationLoading(prev => {
+        const updated = { ...prev };
+        delete updated[event.id];
+        return updated;
+      });
+    }
+  };
+
+  // Handle event unregistration
+  const handleUnregister = async (event) => {
+    if (!isLoggedIn) {
+      alert('Please sign in to manage your registrations');
+      return;
+    }
+
+    if (!isRegistered(event.id)) {
+      alert('You are not registered for this event');
+      return;
+    }
+
+    try {
+      // Set loading state for this specific event
+      setRegistrationLoading(prev => ({
+        ...prev,
+        [event.id]: true
+      }));
+
+      // Get the registration document ID
+      const registrationId = registrationIds[event.id];
+
+      if (!registrationId) {
+        throw new Error('Registration not found');
+      }
+
+      // Delete the registration document from Firestore
+      await deleteDoc(doc(db, 'event_registrations', registrationId));
+
+      // Update local state
+      const updatedRegisteredEvents = registeredEvents.filter(id => id !== event.id);
+      setRegisteredEvents(updatedRegisteredEvents);
+
+      // Update registration IDs
+      const updatedRegistrationIds = { ...registrationIds };
+      delete updatedRegistrationIds[event.id];
+      setRegistrationIds(updatedRegistrationIds);
+
+      // Show success message
+      setUnregistrationSuccess({
+        eventId: event.id,
+        eventName: event.name
+      });
+
+      // Clear any registration message
+      setRegistrationSuccess(null);
+
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setUnregistrationSuccess(null);
+      }, 5000);
+
+      // Clear loading state for this event
+      setRegistrationLoading(prev => {
+        const updated = { ...prev };
+        delete updated[event.id];
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error unregistering from event:', error);
+      alert('Failed to unregister from event. Please try again.');
+      // Clear loading state for this event
+      setRegistrationLoading(prev => {
+        const updated = { ...prev };
+        delete updated[event.id];
+        return updated;
+      });
     }
   };
 
@@ -330,6 +539,60 @@ const Events = () => {
                             <span>{event.location}</span>
                           </div>
                         </div>
+
+                        {(eventStatus === 'upcoming' || eventStatus === 'today') && (
+                          <div className="event-card-actions">
+                            {isRegistered(event.id) ? (
+                              <motion.button
+                                className="unregister-button"
+                                onClick={() => handleUnregister(event)}
+                                disabled={!!registrationLoading[event.id]}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                {registrationLoading[event.id] ? 'Processing...' : 'Unregister'}
+                              </motion.button>
+                            ) : (
+                              <motion.button
+                                className="register-button"
+                                onClick={() => handleRegister(event)}
+                                disabled={!!registrationLoading[event.id]}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                {registrationLoading[event.id] ? 'Processing...' : 'Register'}
+                              </motion.button>
+                            )}
+                          </div>
+                        )}
+
+                        <AnimatePresence>
+                          {registrationSuccess && registrationSuccess.eventId === event.id && (
+                            <motion.div
+                              className="registration-confirmation success"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              key="registration-success"
+                            >
+                              <span className="confirmation-icon">✓</span>
+                              <span>Successfully registered for {registrationSuccess.eventName}!</span>
+                            </motion.div>
+                          )}
+
+                          {unregistrationSuccess && unregistrationSuccess.eventId === event.id && (
+                            <motion.div
+                              className="registration-confirmation unregistered"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              key="unregistration-success"
+                            >
+                              <span className="confirmation-icon">✓</span>
+                              <span>Successfully unregistered from {unregistrationSuccess.eventName}!</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </motion.div>
                   );
