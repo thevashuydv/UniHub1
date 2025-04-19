@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db } from '../firebase';
 import './ClubAdminDashboard.css';
@@ -14,6 +14,17 @@ const ClubAdminDashboard = () => {
   const [eventRegistrations, setEventRegistrations] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showRegistrations, setShowRegistrations] = useState(false);
+
+  // Club Info Management state
+  const [showClubInfoForm, setShowClubInfoForm] = useState(false);
+  const [clubInfoLoading, setClubInfoLoading] = useState(false);
+  const [clubHead, setClubHead] = useState('');
+  const [clubMembers, setClubMembers] = useState([]);
+  const [clubInfoError, setClubInfoError] = useState('');
+  const [clubInfoSuccess, setClubInfoSuccess] = useState('');
+
+  // New member form state
+  const [newMember, setNewMember] = useState({ name: '', position: '' });
 
   // Event form state
   const [eventName, setEventName] = useState('');
@@ -49,6 +60,9 @@ const ClubAdminDashboard = () => {
         id: clubId,
         name: clubName
       });
+
+      // Fetch club details including club head and members
+      fetchClubDetails(clubId);
 
       // Fetch events for this club
       fetchEvents(clubId);
@@ -188,6 +202,66 @@ const ClubAdminDashboard = () => {
     setSelectedEvent(null);
   };
 
+  // Export registrations to CSV
+  const exportRegistrationsToCSV = (event, registrations) => {
+    if (!registrations || registrations.length === 0) {
+      alert('No registrations to export');
+      return;
+    }
+
+    try {
+      // Define CSV headers
+      const headers = [
+        'Event Name',
+        'Participant Name',
+        'Email',
+        'Contact Number',
+        'Registration Date',
+        'Registration Time'
+      ];
+
+      // Convert registrations to CSV rows
+      const rows = registrations.map(registration => {
+        const registrationDate = new Date(registration.registeredAt);
+
+        return [
+          event.name,
+          registration.userName,
+          registration.userEmail,
+          registration.userProfile?.contactNumber || 'N/A',
+          registrationDate.toLocaleDateString(),
+          registrationDate.toLocaleTimeString()
+        ];
+      });
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+
+      // Create a Blob with the CSV content
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+      // Create a download link
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+
+      // Set link properties
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${event.name.replace(/\s+/g, '_')}_registrations.csv`);
+      link.style.visibility = 'hidden';
+
+      // Add link to document, click it, and remove it
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting registrations:', error);
+      alert('Failed to export registrations. Please try again.');
+    }
+  };
+
   // Delete event
   const handleDeleteEvent = async (eventId) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
@@ -225,6 +299,140 @@ const ClubAdminDashboard = () => {
     return eventDate > now;
   };
 
+  // Fetch detailed club information
+  const fetchClubDetails = async (clubId) => {
+    try {
+      setClubInfoLoading(true);
+
+      const clubRef = doc(db, 'clubs', clubId);
+      const clubSnap = await getDoc(clubRef);
+
+      if (clubSnap.exists()) {
+        const clubData = clubSnap.data();
+
+        // Update club details with all data
+        setClubDetails({
+          id: clubId,
+          ...clubData
+        });
+
+        // Set club head if it exists
+        if (clubData.clubHead) {
+          setClubHead(clubData.clubHead);
+        }
+
+        // Set club members if they exist
+        if (clubData.clubMembers) {
+          if (Array.isArray(clubData.clubMembers)) {
+            // Check if members have the new structure with name and position
+            const hasStructuredMembers = clubData.clubMembers.length > 0 &&
+              typeof clubData.clubMembers[0] === 'object' &&
+              'name' in clubData.clubMembers[0];
+
+            if (hasStructuredMembers) {
+              // Use the structured members directly
+              setClubMembers(clubData.clubMembers);
+            } else {
+              // Convert simple string array to structured format
+              const structuredMembers = clubData.clubMembers.map(name => ({
+                name,
+                position: ''
+              }));
+              setClubMembers(structuredMembers);
+            }
+          } else {
+            // Initialize with empty array if data format is invalid
+            setClubMembers([]);
+          }
+        } else {
+          // Initialize with empty array if no members exist
+          setClubMembers([]);
+        }
+      }
+
+      setClubInfoLoading(false);
+    } catch (error) {
+      console.error('Error fetching club details:', error);
+      setClubInfoError('Failed to load club information. Please try again.');
+      setClubInfoLoading(false);
+    }
+  };
+
+  // Handle club info form submission
+  const handleClubInfoSubmit = async (e) => {
+    e.preventDefault();
+    setClubInfoError('');
+    setClubInfoSuccess('');
+
+    try {
+      setClubInfoLoading(true);
+
+      // Validate members data
+      const validMembers = clubMembers.filter(member => member.name.trim() !== '');
+
+      // Update club document in Firestore
+      const clubRef = doc(db, 'clubs', clubDetails.id);
+      await updateDoc(clubRef, {
+        clubHead: clubHead.trim(),
+        clubMembers: validMembers,
+        updatedAt: new Date().toISOString()
+      });
+
+      // Update local state
+      setClubDetails({
+        ...clubDetails,
+        clubHead: clubHead.trim(),
+        clubMembers: validMembers
+      });
+
+      setClubInfoSuccess('Club information updated successfully!');
+
+      // Hide form after successful submission
+      setTimeout(() => {
+        setShowClubInfoForm(false);
+        setClubInfoSuccess('');
+      }, 2000);
+
+      setClubInfoLoading(false);
+    } catch (error) {
+      console.error('Error updating club information:', error);
+      setClubInfoError('Failed to update club information. Please try again.');
+      setClubInfoLoading(false);
+    }
+  };
+
+  // Handle adding a new member
+  const handleAddMember = () => {
+    if (newMember.name.trim() === '') {
+      setClubInfoError('Member name cannot be empty');
+      return;
+    }
+
+    setClubMembers([...clubMembers, { ...newMember }]);
+    setNewMember({ name: '', position: '' }); // Reset form
+    setClubInfoError('');
+  };
+
+  // Handle updating a member
+  const handleUpdateMember = (index, field, value) => {
+    const updatedMembers = [...clubMembers];
+    updatedMembers[index] = { ...updatedMembers[index], [field]: value };
+    setClubMembers(updatedMembers);
+  };
+
+  // Handle removing a member
+  const handleRemoveMember = (index) => {
+    const updatedMembers = clubMembers.filter((_, i) => i !== index);
+    setClubMembers(updatedMembers);
+  };
+
+  // Toggle club info form
+  const toggleClubInfoForm = () => {
+    setShowClubInfoForm(!showClubInfoForm);
+    setClubInfoError('');
+    setClubInfoSuccess('');
+  };
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -253,16 +461,169 @@ const ClubAdminDashboard = () => {
           {clubDetails && <h2>{clubDetails.name}</h2>}
         </div>
 
-        <motion.button
-          className="create-event-button"
-          onClick={() => setShowEventForm(!showEventForm)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {showEventForm ? 'Cancel' : 'Create New Event'}
-        </motion.button>
+        <div className="dashboard-actions">
+          <motion.button
+            className="manage-club-button"
+            onClick={toggleClubInfoForm}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {showClubInfoForm ? 'Cancel' : 'Manage Club Info'}
+          </motion.button>
+
+          <motion.button
+            className="create-event-button"
+            onClick={() => setShowEventForm(!showEventForm)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {showEventForm ? 'Cancel' : 'Create New Event'}
+          </motion.button>
+        </div>
       </div>
 
+      {/* Club Info Management Form */}
+      {showClubInfoForm && (
+        <motion.div
+          className="club-info-form-container"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+        >
+          <h2>Manage Club Information</h2>
+
+          {clubInfoError && <div className="form-error">{clubInfoError}</div>}
+          {clubInfoSuccess && <div className="form-success">{clubInfoSuccess}</div>}
+
+          {clubInfoLoading ? (
+            <div className="loading-spinner-container">
+              <div className="loading-spinner"></div>
+              <p>Loading club information...</p>
+            </div>
+          ) : (
+            <form onSubmit={handleClubInfoSubmit} className="club-info-form">
+              <div className="form-group">
+                <label htmlFor="clubHead">Club Head / President</label>
+                <input
+                  type="text"
+                  id="clubHead"
+                  value={clubHead}
+                  onChange={(e) => setClubHead(e.target.value)}
+                  placeholder="Enter name of club head/president"
+                  required
+                />
+              </div>
+
+              <div className="form-group full-width">
+                <label>Club Members</label>
+
+                <div className="members-table-container">
+                  {clubMembers.length > 0 ? (
+                    <table className="members-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Position/Role</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clubMembers.map((member, index) => (
+                          <tr key={index}>
+                            <td>
+                              <input
+                                type="text"
+                                value={member.name}
+                                onChange={(e) => handleUpdateMember(index, 'name', e.target.value)}
+                                placeholder="Member name"
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                value={member.position}
+                                onChange={(e) => handleUpdateMember(index, 'position', e.target.value)}
+                                placeholder="Position/Role"
+                              />
+                            </td>
+                            <td>
+                              <motion.button
+                                type="button"
+                                className="remove-member-button"
+                                onClick={() => handleRemoveMember(index)}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                Remove
+                              </motion.button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="no-members-message">No members added yet. Use the form below to add members.</p>
+                  )}
+                </div>
+
+                <div className="add-member-form">
+                  <h4>Add New Member</h4>
+                  <div className="add-member-inputs">
+                    <input
+                      type="text"
+                      value={newMember.name}
+                      onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                      placeholder="Member name"
+                      className="member-name-input"
+                    />
+                    <input
+                      type="text"
+                      value={newMember.position}
+                      onChange={(e) => setNewMember({ ...newMember, position: e.target.value })}
+                      placeholder="Position/Role"
+                      className="member-position-input"
+                    />
+                    <motion.button
+                      type="button"
+                      className="add-member-button"
+                      onClick={handleAddMember}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Add Member
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <motion.button
+                  type="submit"
+                  className="submit-button"
+                  disabled={clubInfoLoading}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {clubInfoLoading ? 'Saving...' : 'Save Club Information'}
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  className="cancel-button"
+                  onClick={toggleClubInfoForm}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </form>
+          )}
+        </motion.div>
+      )}
+
+      {/* Event Form */}
       {showEventForm && (
         <motion.div
           className="event-form-container"
@@ -372,6 +733,67 @@ const ClubAdminDashboard = () => {
         </motion.div>
       )}
 
+      {/* Club Info Display Section */}
+      {!showClubInfoForm && !showEventForm && (
+        <motion.div
+          className="club-info-section"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h2>Club Information</h2>
+
+          <div className="club-info-display">
+            <div className="info-card">
+              <h3>Club Head / President</h3>
+              <p>{clubDetails?.clubHead || 'Not specified'}</p>
+              <motion.button
+                className="edit-info-button"
+                onClick={toggleClubInfoForm}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Edit Club Info
+              </motion.button>
+            </div>
+
+            <div className="info-card members-card">
+              <h3>Club Members</h3>
+              {clubDetails?.clubMembers && clubDetails.clubMembers.length > 0 ? (
+                <div className="members-table-view">
+                  <table className="members-display-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Position/Role</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.isArray(clubDetails.clubMembers) ? (
+                        clubDetails.clubMembers.map((member, index) => (
+                          <tr key={index}>
+                            <td data-position={typeof member === 'object' ? (member.position || '-') : '-'}>
+                              {typeof member === 'object' ? member.name : member}
+                            </td>
+                            <td>{typeof member === 'object' ? (member.position || '-') : '-'}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="2">Error: Members data format is invalid</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="no-members">No members added yet</p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <div className="events-section">
         <h2>Your Events</h2>
 
@@ -439,6 +861,17 @@ const ClubAdminDashboard = () => {
                           </span>
                         )}
                       </motion.button>
+
+                      {eventRegistrations[event.id]?.length > 0 && (
+                        <motion.button
+                          className="export-button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => exportRegistrationsToCSV(event, eventRegistrations[event.id])}
+                        >
+                          <span className="export-icon">📊</span> Export
+                        </motion.button>
+                      )}
 
                       <motion.button
                         className="edit-button"
@@ -513,6 +946,17 @@ const ClubAdminDashboard = () => {
                         )}
                       </motion.button>
 
+                      {eventRegistrations[event.id]?.length > 0 && (
+                        <motion.button
+                          className="export-button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => exportRegistrationsToCSV(event, eventRegistrations[event.id])}
+                        >
+                          <span className="export-icon">📊</span> Export
+                        </motion.button>
+                      )}
+
                       <motion.button
                         className="delete-button"
                         whileHover={{ scale: 1.05 }}
@@ -540,7 +984,19 @@ const ClubAdminDashboard = () => {
           >
             <div className="modal-header">
               <h2>Registrations for {selectedEvent.name}</h2>
-              <button className="close-modal" onClick={closeRegistrations}>&times;</button>
+              <div className="modal-actions">
+                {eventRegistrations[selectedEvent.id]?.length > 0 && (
+                  <motion.button
+                    className="export-button"
+                    onClick={() => exportRegistrationsToCSV(selectedEvent, eventRegistrations[selectedEvent.id])}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="export-icon">📊</span> Export CSV
+                  </motion.button>
+                )}
+                <button className="close-modal" onClick={closeRegistrations}>&times;</button>
+              </div>
             </div>
 
             <div className="modal-content">
