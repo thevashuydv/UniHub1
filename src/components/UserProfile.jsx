@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import './UserProfile.css';
+
+// Helper function to convert file to base64
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -13,7 +22,7 @@ const UserProfile = () => {
   const [success, setSuccess] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  
+
   // User data state
   const [userId, setUserId] = useState('');
   const [userData, setUserData] = useState({
@@ -24,7 +33,7 @@ const UserProfile = () => {
     bio: '',
     profilePicture: ''
   });
-  
+
   // Form data state (for editing)
   const [formData, setFormData] = useState({
     name: '',
@@ -33,38 +42,38 @@ const UserProfile = () => {
     contactNumber: '',
     bio: ''
   });
-  
+
   const fileInputRef = useRef(null);
-  
+
   // Check if user is logged in
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const userEmail = localStorage.getItem('userEmail');
-    
+
     if (!isLoggedIn || !userEmail) {
       navigate('/signin');
       return;
     }
-    
+
     fetchUserProfile(userEmail);
   }, [navigate]);
-  
+
   // Fetch user profile data
   const fetchUserProfile = async (userEmail) => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Check regular users collection first
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', userEmail));
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         // User found in regular users collection
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
-        
+
         setUserId(userDoc.id);
         setUserData({
           name: userData.name || '',
@@ -74,7 +83,7 @@ const UserProfile = () => {
           bio: userData.bio || '',
           profilePicture: userData.profilePicture || ''
         });
-        
+
         setFormData({
           name: userData.name || '',
           email: userData.email || '',
@@ -87,12 +96,12 @@ const UserProfile = () => {
         const clubAdminsRef = collection(db, 'club_admins');
         const adminQuery = query(clubAdminsRef, where('email', '==', userEmail));
         const adminSnapshot = await getDocs(adminQuery);
-        
+
         if (!adminSnapshot.empty) {
           // User found in club_admins collection
           const adminDoc = adminSnapshot.docs[0];
           const adminData = adminDoc.data();
-          
+
           setUserId(adminDoc.id);
           setUserData({
             name: adminData.fullName || '',
@@ -102,7 +111,7 @@ const UserProfile = () => {
             bio: adminData.bio || '',
             profilePicture: adminData.profilePicture || ''
           });
-          
+
           setFormData({
             name: adminData.fullName || '',
             email: adminData.email || '',
@@ -114,7 +123,7 @@ const UserProfile = () => {
           setError('User profile not found');
         }
       }
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -122,7 +131,7 @@ const UserProfile = () => {
       setLoading(false);
     }
   };
-  
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -131,7 +140,7 @@ const UserProfile = () => {
       [name]: value
     });
   };
-  
+
   // Toggle edit mode
   const toggleEditMode = () => {
     if (isEditing) {
@@ -147,23 +156,23 @@ const UserProfile = () => {
     setIsEditing(!isEditing);
     setSuccess('');
   };
-  
+
   // Handle profile update
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
       setError('');
       setSuccess('');
-      
+
       // Determine which collection to update based on user type
       const isClubAdmin = localStorage.getItem('userRole') === 'club_admin';
       const collectionName = isClubAdmin ? 'club_admins' : 'users';
-      
+
       // Create update object based on user type
       let updateData;
-      
+
       if (isClubAdmin) {
         updateData = {
           fullName: formData.name,
@@ -181,11 +190,11 @@ const UserProfile = () => {
           updatedAt: new Date().toISOString()
         };
       }
-      
+
       // Update user document in Firestore
       const userDocRef = doc(db, collectionName, userId);
       await updateDoc(userDocRef, updateData);
-      
+
       // Update local state
       setUserData({
         ...userData,
@@ -194,14 +203,14 @@ const UserProfile = () => {
         contactNumber: formData.contactNumber,
         bio: formData.bio
       });
-      
+
       // Update localStorage if name changed
       if (formData.name !== userData.name) {
         localStorage.setItem('userName', formData.name);
         // Dispatch custom event to notify other components (like Navbar)
         window.dispatchEvent(new Event('authStateChanged'));
       }
-      
+
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
       setLoading(false);
@@ -211,42 +220,46 @@ const UserProfile = () => {
       setLoading(false);
     }
   };
-  
+
   // Handle profile picture upload
   const handleProfilePictureUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     try {
       setUploadingImage(true);
       setError('');
-      
-      // Create a reference to the storage location
-      const storageRef = ref(storage, `profile_pictures/${userId}_${Date.now()}`);
-      
-      // Upload the file
-      await uploadBytes(storageRef, file);
-      
-      // Get the download URL
-      const downloadURL = await getDownloadURL(storageRef);
-      
+
+      console.log('Processing profile picture file...');
+
+      // Check file size (limit to 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setError('File size exceeds 2MB. Please choose a smaller image.');
+        setUploadingImage(false);
+        return;
+      }
+
+      // Convert file to base64 string
+      const base64String = await fileToBase64(file);
+      console.log('File converted to base64 successfully');
+
       // Determine which collection to update based on user type
       const isClubAdmin = localStorage.getItem('userRole') === 'club_admin';
       const collectionName = isClubAdmin ? 'club_admins' : 'users';
-      
-      // Update user document in Firestore
+
+      // Update user document in Firestore with base64 string
       const userDocRef = doc(db, collectionName, userId);
       await updateDoc(userDocRef, {
-        profilePicture: downloadURL,
+        profilePicture: base64String,
         updatedAt: new Date().toISOString()
       });
-      
+
       // Update local state
       setUserData({
         ...userData,
-        profilePicture: downloadURL
+        profilePicture: base64String
       });
-      
+
       setSuccess('Profile picture updated successfully!');
       setUploadingImage(false);
     } catch (error) {
@@ -255,12 +268,12 @@ const UserProfile = () => {
       setUploadingImage(false);
     }
   };
-  
+
   // Trigger file input click
   const triggerFileInput = () => {
     fileInputRef.current.click();
   };
-  
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -271,7 +284,7 @@ const UserProfile = () => {
       }
     }
   };
-  
+
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
@@ -280,18 +293,18 @@ const UserProfile = () => {
       transition: { type: 'spring', stiffness: 100 }
     }
   };
-  
+
   return (
     <div className="profile-container">
       <div className="profile-header">
         <h1>My Profile</h1>
         <p className="profile-subtitle">View and manage your personal information</p>
       </div>
-      
+
       {error && <div className="error">{error}</div>}
       <AnimatePresence>
         {success && (
-          <motion.div 
+          <motion.div
             className="success"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -301,36 +314,36 @@ const UserProfile = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {loading ? (
         <div className="loading-spinner-container">
           <div className="loading-spinner"></div>
           <p>Loading profile...</p>
         </div>
       ) : (
-        <motion.div 
+        <motion.div
           className="profile-content"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
           <div className="profile-picture-section">
-            <motion.div 
+            <motion.div
               className="profile-picture-container"
               variants={itemVariants}
             >
               {userData.profilePicture ? (
-                <img 
-                  src={userData.profilePicture} 
-                  alt="Profile" 
-                  className="profile-picture" 
+                <img
+                  src={userData.profilePicture}
+                  alt="Profile"
+                  className="profile-picture"
                 />
               ) : (
                 <div className="profile-picture-placeholder">
                   {userData.name ? userData.name.charAt(0).toUpperCase() : '?'}
                 </div>
               )}
-              
+
               <input
                 type="file"
                 ref={fileInputRef}
@@ -338,7 +351,7 @@ const UserProfile = () => {
                 accept="image/*"
                 style={{ display: 'none' }}
               />
-              
+
               <motion.button
                 className="change-picture-button"
                 onClick={triggerFileInput}
@@ -351,8 +364,8 @@ const UserProfile = () => {
               </motion.button>
             </motion.div>
           </div>
-          
-          <motion.div 
+
+          <motion.div
             className="profile-details-section"
             variants={itemVariants}
           >
@@ -366,7 +379,7 @@ const UserProfile = () => {
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </motion.button>
             </div>
-            
+
             <form onSubmit={handleUpdateProfile}>
               <div className="profile-form">
                 <div className="form-group">
@@ -384,12 +397,12 @@ const UserProfile = () => {
                     <div className="profile-field">{userData.name || 'Not provided'}</div>
                   )}
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="email">Email Address</label>
                   <div className="profile-field">{userData.email}</div>
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="college">College/University</label>
                   {isEditing ? (
@@ -404,7 +417,7 @@ const UserProfile = () => {
                     <div className="profile-field">{userData.college || 'Not provided'}</div>
                   )}
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="contactNumber">Contact Number</label>
                   {isEditing ? (
@@ -419,7 +432,7 @@ const UserProfile = () => {
                     <div className="profile-field">{userData.contactNumber || 'Not provided'}</div>
                   )}
                 </div>
-                
+
                 <div className="form-group full-width">
                   <label htmlFor="bio">Bio</label>
                   {isEditing ? (
@@ -436,9 +449,9 @@ const UserProfile = () => {
                   )}
                 </div>
               </div>
-              
+
               {isEditing && (
-                <motion.div 
+                <motion.div
                   className="form-actions"
                   variants={itemVariants}
                 >
