@@ -1133,6 +1133,7 @@ const ClubAdminDashboard = () => {
                   key={announcement.id}
                   className="announcement-card admin-view"
                   variants={itemVariants}
+                  style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
                 >
                   <div className="announcement-card-header">
                     <h3>{announcement.title}</h3>
