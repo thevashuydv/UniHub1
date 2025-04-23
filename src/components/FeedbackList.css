@@ -1,0 +1,249 @@
+.feedback-list-container {
+  margin-bottom: 40px;
+}
+
+.feedback-list-container h3 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.feedback-summary {
+  background-color: var(--dark-surface);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.average-rating {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.rating-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.rating-stars {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.summary-star {
+  font-size: 1.5rem;
+  color: rgba(255, 193, 7, 0.3);
+}
+
+.summary-star.active {
+  color: #ffc107;
+}
+
+.rating-value {
+  margin-left: 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rating-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-progress {
+  flex: 1;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rating-progress-fill {
+  height: 100%;
+  background-color: #ffc107;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.rating-percentage {
+  width: 40px;
+  text-align: right;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+}
+
+.feedback-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.feedback-item {
+  background-color: var(--dark-surface);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.feedback-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-email {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.feedback-date {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.edited-label {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.feedback-rating {
+  display: flex;
+  gap: 3px;
+}
+
+.feedback-star {
+  font-size: 1.2rem;
+  color: rgba(255, 193, 7, 0.3);
+}
+
+.feedback-star.active {
+  color: #ffc107;
+}
+
+.feedback-comment {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.feedback-comment p {
+  margin: 0;
+}
+
+.feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.delete-feedback-button {
+  background-color: rgba(255, 107, 107, 0.1);
+  color: var(--danger-color);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  padding: 8px 16px;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.delete-feedback-button:hover {
+  background-color: rgba(255, 107, 107, 0.2);
+  transform: translateY(-2px);
+}
+
+.no-feedback-message {
+  background-color: var(--dark-surface);
+  border-radius: var(--border-radius-lg);
+  padding: 30px;
+  text-align: center;
+  color: var(--text-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.feedback-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(100, 108, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive styles */
+@media screen and (max-width: 768px) {
+  .feedback-summary {
+    padding: 15px;
+  }
+
+  .feedback-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .feedback-item {
+    padding: 15px;
+  }
+}

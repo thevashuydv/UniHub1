@@ -1,0 +1,522 @@
+.events-container {
+  width: 100%;
+  padding: 20px;
+  padding-top: calc(var(--navbar-height) + 20px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.events-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.events-title {
+  font-size: 2.8rem;
+  margin-bottom: 10px;
+  font-weight: 800;
+}
+
+.events-subtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: 30px;
+}
+
+.events-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.search-container {
+  width: 100%;
+}
+
+.event-search-input {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.event-search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.filter-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background-color: var(--dark-surface-2);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.filter-button:hover {
+  background-color: rgba(100, 108, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.filter-button.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.events-content {
+  margin-top: 30px;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.event-date-group {
+  margin-bottom: 10px;
+}
+
+.event-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.event-date-header {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+  position: relative;
+}
+
+.event-date-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 50px;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 3px;
+}
+
+.event-card {
+  background-color: var(--dark-surface);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.event-card.today {
+  border-left: 4px solid #4caf50;
+}
+
+.event-card.upcoming {
+  border-left: 4px solid var(--primary-color);
+}
+
+.event-card.past {
+  border-left: 4px solid var(--text-tertiary);
+  opacity: 0.8;
+}
+
+.event-card-header {
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.event-info {
+  flex: 1;
+}
+
+.event-name {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.event-club {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.event-category {
+  background-color: rgba(100, 108, 255, 0.1);
+  color: var(--primary-color);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.event-today-badge {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.event-time {
+  background-color: var(--dark-surface-2);
+  padding: 8px 12px;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.event-card-body {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-description {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-feedback-summary {
+  margin-bottom: 15px;
+}
+
+.event-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.star-icon {
+  color: #ffc107;
+  font-size: 1.1rem;
+}
+
+.rating-count {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.event-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+
+.detail-icon {
+  font-size: 1.1rem;
+}
+
+/* Event registration styles */
+.event-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Special styling for club admin view details button */
+.admin-view-details {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.register-button,
+.unregister-button,
+.view-details-button {
+  padding: 8px 20px;
+  border-radius: 50px;
+  color: white;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.register-button {
+  background-color: var(--primary-color);
+}
+
+.unregister-button {
+  background-color: var(--danger-color);
+}
+
+.register-button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.unregister-button:hover {
+  background-color: #e53935; /* Darker red */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.view-details-button {
+  background-color: rgba(100, 108, 255, 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(100, 108, 255, 0.2);
+}
+
+.view-details-button:hover {
+  background-color: rgba(100, 108, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.register-button:disabled,
+.unregister-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.registration-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.registration-status.registered {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.status-icon {
+  font-size: 1rem;
+}
+
+.registration-confirmation {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.registration-confirmation.success {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+}
+
+.registration-confirmation.unregistered {
+  background-color: rgba(229, 57, 53, 0.1);
+  color: var(--danger-color);
+}
+
+.confirmation-icon {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+/* Loading and empty states */
+.events-loading,
+.events-not-logged-in,
+.no-followed-clubs,
+.no-events-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(100, 108, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.events-error {
+  text-align: center;
+  color: var(--danger-color);
+  padding: 30px;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: var(--border-radius-md);
+  margin: 30px auto;
+  max-width: 600px;
+}
+
+.sign-in-button,
+.browse-clubs-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border-radius: var(--border-radius-md);
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reset-filter-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0 5px;
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .events-title {
+    font-size: 2.2rem;
+  }
+
+  .event-card-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .event-time {
+    align-self: flex-start;
+  }
+
+  .filter-buttons {
+    flex-wrap: wrap;
+  }
+
+  .filter-button {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .event-card-actions {
+    justify-content: center;
+  }
+
+  .register-button,
+  .registration-status {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .registration-confirmation {
+    text-align: center;
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .event-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .event-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  .event-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media screen and (min-width: 1280px) {
+  .event-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

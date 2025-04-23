@@ -1,0 +1,21 @@
+{
+  "name": "unihub-email-server",
+  "version": "1.0.0",
+  "description": "Email server for UniHub",
+  "main": "server-resend.js",
+  "scripts": {
+    "start": "node server-resend.js",
+    "dev": "nodemon server-resend.js",
+    "start:sendgrid": "node server-sendgrid.js",
+    "dev:sendgrid": "nodemon server-sendgrid.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "resend": "^2.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
