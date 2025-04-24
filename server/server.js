@@ -17,7 +17,9 @@ const resend = new Resend('re_YuUVEVUt_6Jxk4A5rGrkhdUtPAknFTY5d');
 
 // Enable CORS for your frontend
 app.use(cors({
-  origin: '*' // Allow all origins for testing
+  origin: ['http://localhost:5173', 'https://unihub-c1a9d.web.app', 'https://unihub-c1a9d.firebaseapp.com'], // Your frontend URLs
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Parse JSON request bodies

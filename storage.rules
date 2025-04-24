@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow read access to everyone
+    // Allow write access to any authenticated user
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if true; // In production, you might want to restrict this further
+    }
+
+    // Club profile images
+    match /clubs/{clubId}/{fileName} {
+      allow read: if true;
+      allow write: if true; // In production, you might want to restrict this to club admins only
+    }
+
+    // User profile images
+    match /users/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if true; // In production, you might want to restrict this to the user who owns the profile
+    }
+
+    // Event images
+    match /events/{eventId}/{fileName} {
+      allow read: if true;
+      allow write: if true; // In production, you might want to restrict this to club admins only
+    }
+  }
+}

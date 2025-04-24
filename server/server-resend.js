@@ -15,7 +15,9 @@ const resend = new Resend('re_YuUVEVUt_6Jxk4A5rGrkhdUtPAknFTY5d');
 
 // Enable CORS for your frontend
 app.use(cors({
-  origin: '*' // Allow all origins for testing
+  origin: ['http://localhost:5173', 'https://unihub-c1a9d.web.app', 'https://unihub-c1a9d.firebaseapp.com'], // Your frontend URLs
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Parse JSON request bodies
@@ -25,7 +27,7 @@ app.use(express.json());
 app.post('/api/send-event-registration', async (req, res) => {
   try {
     const { userEmail, userName, eventName, eventDate, eventLocation, clubName } = req.body;
-    
+
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev', // Using Resend's default sender
       to: userEmail,
@@ -35,17 +37,17 @@ app.post('/api/send-event-registration', async (req, res) => {
           <h2 style="color: #646cff;">Event Registration Confirmation</h2>
           <p>Hello ${userName},</p>
           <p>Your registration for the following event has been confirmed:</p>
-          
+
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #646cff;">${eventName}</h3>
             <p><strong>Date & Time:</strong> ${eventDate}</p>
             <p><strong>Location:</strong> ${eventLocation}</p>
             <p><strong>Organized by:</strong> ${clubName}</p>
           </div>
-          
+
           <p>We look forward to seeing you there!</p>
           <p>If you have any questions, please contact the event organizers.</p>
-          
+
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777;">
             <p>This is an automated message from UniHub. Please do not reply to this email.</p>
           </div>
@@ -70,7 +72,7 @@ app.post('/api/send-event-registration', async (req, res) => {
 app.post('/api/send-new-event-notification', async (req, res) => {
   try {
     const { userEmail, userName, eventName, eventDate, eventDescription, eventLocation, clubName } = req.body;
-    
+
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev', // Using Resend's default sender
       to: userEmail,
@@ -80,17 +82,17 @@ app.post('/api/send-new-event-notification', async (req, res) => {
           <h2 style="color: #646cff;">New Event Announcement</h2>
           <p>Hello ${userName},</p>
           <p>${clubName} has posted a new event that might interest you:</p>
-          
+
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #646cff;">${eventName}</h3>
             <p><strong>Date & Time:</strong> ${eventDate}</p>
             <p><strong>Location:</strong> ${eventLocation}</p>
             <p><strong>Description:</strong> ${eventDescription}</p>
           </div>
-          
+
           <p>You're receiving this because you follow ${clubName}.</p>
           <p>We hope to see you there!</p>
-          
+
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777;">
             <p>This is an automated message from UniHub. Please do not reply to this email.</p>
             <p>To stop receiving these notifications, unfollow the club on UniHub.</p>
@@ -116,7 +118,7 @@ app.post('/api/send-new-event-notification', async (req, res) => {
 app.post('/api/send-announcement-notification', async (req, res) => {
   try {
     const { userEmail, userName, announcementTitle, announcementContent, clubName } = req.body;
-    
+
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev', // Using Resend's default sender
       to: userEmail,
@@ -126,14 +128,14 @@ app.post('/api/send-announcement-notification', async (req, res) => {
           <h2 style="color: #646cff;">Club Announcement</h2>
           <p>Hello ${userName},</p>
           <p>${clubName} has posted a new announcement:</p>
-          
+
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #646cff;">${announcementTitle}</h3>
             <div>${announcementContent}</div>
           </div>
-          
+
           <p>You're receiving this because you follow ${clubName}.</p>
-          
+
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777;">
             <p>This is an automated message from UniHub. Please do not reply to this email.</p>
             <p>To stop receiving these notifications, unfollow the club on UniHub.</p>
@@ -159,28 +161,28 @@ app.post('/api/send-announcement-notification', async (req, res) => {
 app.post('/api/send-batch-emails', async (req, res) => {
   try {
     const { emailType, recipients } = req.body;
-    
+
     if (!emailType || !recipients || !Array.isArray(recipients)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid request. Required: emailType and recipients array' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request. Required: emailType and recipients array'
       });
     }
-    
+
     const results = {
       success: [],
       failed: []
     };
-    
+
     // Process each recipient
     for (const recipient of recipients) {
       try {
         let result;
-        
+
         // Call the appropriate function based on email type
         if (emailType === 'event-registration') {
           const { userEmail, userName, eventName, eventDate, eventLocation, clubName } = recipient;
-          
+
           const { data, error } = await resend.emails.send({
             from: 'onboarding@resend.dev',
             to: userEmail,
@@ -190,29 +192,29 @@ app.post('/api/send-batch-emails', async (req, res) => {
                 <h2 style="color: #646cff;">Event Registration Confirmation</h2>
                 <p>Hello ${userName},</p>
                 <p>Your registration for the following event has been confirmed:</p>
-                
+
                 <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #646cff;">${eventName}</h3>
                   <p><strong>Date & Time:</strong> ${eventDate}</p>
                   <p><strong>Location:</strong> ${eventLocation}</p>
                   <p><strong>Organized by:</strong> ${clubName}</p>
                 </div>
-                
+
                 <p>We look forward to seeing you there!</p>
                 <p>If you have any questions, please contact the event organizers.</p>
-                
+
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777;">
                   <p>This is an automated message from UniHub. Please do not reply to this email.</p>
                 </div>
               </div>
             `
           });
-          
+
           result = { success: !error, data, error };
-          
+
         } else if (emailType === 'new-event') {
           const { userEmail, userName, eventName, eventDate, eventDescription, eventLocation, clubName } = recipient;
-          
+
           const { data, error } = await resend.emails.send({
             from: 'onboarding@resend.dev',
             to: userEmail,
@@ -222,17 +224,17 @@ app.post('/api/send-batch-emails', async (req, res) => {
                 <h2 style="color: #646cff;">New Event Announcement</h2>
                 <p>Hello ${userName},</p>
                 <p>${clubName} has posted a new event that might interest you:</p>
-                
+
                 <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #646cff;">${eventName}</h3>
                   <p><strong>Date & Time:</strong> ${eventDate}</p>
                   <p><strong>Location:</strong> ${eventLocation}</p>
                   <p><strong>Description:</strong> ${eventDescription}</p>
                 </div>
-                
+
                 <p>You're receiving this because you follow ${clubName}.</p>
                 <p>We hope to see you there!</p>
-                
+
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777;">
                   <p>This is an automated message from UniHub. Please do not reply to this email.</p>
                   <p>To stop receiving these notifications, unfollow the club on UniHub.</p>
@@ -240,12 +242,12 @@ app.post('/api/send-batch-emails', async (req, res) => {
               </div>
             `
           });
-          
+
           result = { success: !error, data, error };
-          
+
         } else if (emailType === 'announcement') {
           const { userEmail, userName, announcementTitle, announcementContent, clubName } = recipient;
-          
+
           const { data, error } = await resend.emails.send({
             from: 'onboarding@resend.dev',
             to: userEmail,
@@ -255,14 +257,14 @@ app.post('/api/send-batch-emails', async (req, res) => {
                 <h2 style="color: #646cff;">Club Announcement</h2>
                 <p>Hello ${userName},</p>
                 <p>${clubName} has posted a new announcement:</p>
-                
+
                 <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #646cff;">${announcementTitle}</h3>
                   <div>${announcementContent}</div>
                 </div>
-                
+
                 <p>You're receiving this because you follow ${clubName}.</p>
-                
+
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777;">
                   <p>This is an automated message from UniHub. Please do not reply to this email.</p>
                   <p>To stop receiving these notifications, unfollow the club on UniHub.</p>
@@ -270,13 +272,13 @@ app.post('/api/send-batch-emails', async (req, res) => {
               </div>
             `
           });
-          
+
           result = { success: !error, data, error };
-          
+
         } else {
           throw new Error(`Unknown email type: ${emailType}`);
         }
-        
+
         if (result.success) {
           results.success.push(recipient.userEmail);
         } else {
@@ -286,7 +288,7 @@ app.post('/api/send-batch-emails', async (req, res) => {
         results.failed.push({ email: recipient.userEmail, error: error.message });
       }
     }
-    
+
     return res.json(results);
   } catch (error) {
     console.error('Error in batch email sending:', error);

@@ -1,5 +1,8 @@
+// Import config
+import config from '../config';
+
 // API URL for our backend proxy server that uses SendGrid
-const API_URL = 'http://localhost:3003/api';
+const API_URL = `${config.apiUrl}/api`;
 
 export const initEmailService = () => {
   console.log('SendGrid email service ready');
